@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownLeft, CreditCard, Plus } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownLeft, CreditCard, Plus, CheckCircle2 } from 'lucide-react'
 import { apiFetch } from '../services/api'
 import { formatTransactionDate } from '../utils/dateUtils'
+import AddTransactionModal from '../components/AddTransactionModal'
 
 interface Transaction {
   id: number | string
@@ -69,6 +70,8 @@ export default function DashboardView() {
   const [accounts, setAccounts] = useState<AccountSummary[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const fetchAccountsSummary = async () => {
     setIsLoading(true)
@@ -91,17 +94,43 @@ export default function DashboardView() {
     fetchAccountsSummary()
   }, [])
 
+  const handleSuccess = (msg: string) => {
+    setToastMessage(msg)
+    fetchAccountsSummary()
+    const timer = setTimeout(() => setToastMessage(null), 4000)
+    return () => clearTimeout(timer)
+  }
+
   const totalBalance = accounts.reduce((acc, account) => acc + (account.currentBalance ?? 0), 0)
 
   return (
     <div className="space-y-6">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center justify-between shadow-sm animate-fadeIn">
+          <div className="flex items-center space-x-2 text-sm font-semibold">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+            <span>{toastMessage}</span>
+          </div>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-emerald-600 hover:text-emerald-800 text-xs font-medium"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard</h1>
           <p className="text-sm text-slate-500">Overview of your financial activity and balances.</p>
         </div>
         <div className="flex items-center space-x-3">
-          <button className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+          >
             <LayoutDashboard className="w-4 h-4 mr-2" />
             Add Transaction
           </button>
@@ -278,6 +307,13 @@ export default function DashboardView() {
           ))}
         </div>
       )}
+
+      {/* Add Transaction Modal */}
+      <AddTransactionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={handleSuccess}
+      />
     </div>
   )
 }

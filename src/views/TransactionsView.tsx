@@ -1,15 +1,114 @@
-import { ArrowUpDown, Search, Filter, Plus } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ArrowUpDown, Search, Filter, Plus, CheckCircle2 } from 'lucide-react'
+import AddTransactionModal from '../components/AddTransactionModal'
+import { apiFetch } from '../services/api'
+import { formatTransactionDate } from '../utils/dateUtils'
+
+interface TransactionItem {
+  id: number | string
+  description: string
+  category?: string
+  categoryName?: string
+  categoryType?: string
+  dateOfTransaction: string
+  amount: number
+}
 
 export default function TransactionsView() {
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [transactions, setTransactions] = useState<TransactionItem[]>([])
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchTransactions = async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await apiFetch('/api/transactions')
+      if (response.ok) {
+        const data = await response.json()
+        const list = Array.isArray(data) ? data : (data.transactions || data.data || data.items || [])
+        setTransactions(list)
+        return
+      }
+    } catch {
+      // fallback to accounts summary transactions
+    }
+
+    try {
+      const response = await apiFetch('/api/accounts/summary')
+      if (response.ok) {
+        const data = await response.json()
+        const accs = Array.isArray(data) ? data : (data.accounts || data.data || data.items || [])
+        const allTx: TransactionItem[] = []
+        accs.forEach((acc: { transactions?: TransactionItem[] }) => {
+          if (Array.isArray(acc.transactions)) {
+            allTx.push(...acc.transactions)
+          }
+        })
+        setTransactions(allTx)
+        return
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load transactions')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchTransactions()
+  }, [])
+
+  const handleSuccess = (msg: string) => {
+    setToastMessage(msg)
+    fetchTransactions()
+    const timer = setTimeout(() => setToastMessage(null), 4000)
+    return () => clearTimeout(timer)
+  }
+
   return (
     <div className="space-y-6">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center justify-between shadow-sm animate-fadeIn">
+          <div className="flex items-center space-x-2 text-sm font-semibold">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+            <span>{toastMessage}</span>
+          </div>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-emerald-600 hover:text-emerald-800 text-xs font-medium"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {error && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-2xl flex items-center justify-between">
+          <div className="text-sm font-medium">Failed to load transactions: {error}</div>
+          <button
+            onClick={fetchTransactions}
+            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium rounded-lg transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Transactions</h1>
           <p className="text-sm text-slate-500">Manage and view all your income and expense records.</p>
         </div>
         <div className="flex items-center space-x-3">
-          <button className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+          >
             <Plus className="w-4 h-4 mr-2" />
             New Transaction
           </button>
@@ -51,40 +150,43 @@ export default function TransactionsView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-              <tr className="hover:bg-slate-50 transition-colors">
-                <td className="py-4 px-6 font-medium text-slate-900">Salary Deposit</td>
-                <td className="py-4 px-6"><span className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">Income</span></td>
-                <td className="py-4 px-6 text-slate-500">Nov 23, 2026</td>
-                <td className="py-4 px-6 text-right font-semibold text-emerald-600">+$3,400.00</td>
-              </tr>
-              <tr className="hover:bg-slate-50 transition-colors">
-                <td className="py-4 px-6 font-medium text-slate-900">Grocery Store</td>
-                <td className="py-4 px-6"><span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">Food & Dining</span></td>
-                <td className="py-4 px-6 text-slate-500">Nov 22, 2026</td>
-                <td className="py-4 px-6 text-right font-semibold text-slate-900">-$124.50</td>
-              </tr>
-              <tr className="hover:bg-slate-50 transition-colors">
-                <td className="py-4 px-6 font-medium text-slate-900">Electric Bill</td>
-                <td className="py-4 px-6"><span className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">Utilities</span></td>
-                <td className="py-4 px-6 text-slate-500">Nov 18, 2026</td>
-                <td className="py-4 px-6 text-right font-semibold text-slate-900">-$85.20</td>
-              </tr>
-              <tr className="hover:bg-slate-50 transition-colors">
-                <td className="py-4 px-6 font-medium text-slate-900">Coffee Shop</td>
-                <td className="py-4 px-6"><span className="px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700">Food & Dining</span></td>
-                <td className="py-4 px-6 text-slate-500">Nov 17, 2026</td>
-                <td className="py-4 px-6 text-right font-semibold text-slate-900">-$4.75</td>
-              </tr>
-              <tr className="hover:bg-slate-50 transition-colors">
-                <td className="py-4 px-6 font-medium text-slate-900">Freelance Project</td>
-                <td className="py-4 px-6"><span className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">Income</span></td>
-                <td className="py-4 px-6 text-slate-500">Nov 15, 2026</td>
-                <td className="py-4 px-6 text-right font-semibold text-emerald-600">+$1,450.00</td>
-              </tr>
+              {transactions.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-slate-400 italic">
+                    {isLoading ? 'Loading transactions...' : 'No transactions recorded yet.'}
+                  </td>
+                </tr>
+              ) : (
+                transactions.map((tx) => {
+                  const isIncome = tx.categoryType === 'Income' || tx.amount > 0
+                  return (
+                    <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-4 px-6 font-medium text-slate-900">{tx.description}</td>
+                      <td className="py-4 px-6">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${isIncome ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-750'}`}>
+                          {tx.categoryName ?? tx.category ?? 'General'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-slate-500">{formatTransactionDate(tx.dateOfTransaction)}</td>
+                      <td className={`py-4 px-6 text-right font-semibold ${isIncome ? 'text-emerald-600' : 'text-slate-900'}`}>
+                        {isIncome ? `+$${Math.abs(tx.amount).toFixed(2)}` : `-$${Math.abs(tx.amount).toFixed(2)}`}
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Add Transaction Modal */}
+      <AddTransactionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={handleSuccess}
+      />
     </div>
   )
 }
+
