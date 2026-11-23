@@ -6,8 +6,9 @@ interface PrimarySavingsResponse {
   id: string
   name: string
   slug: string
-  balance: number
-  currency: string
+  currentBalance?: number
+  balance?: number
+  currency?: string
 }
 
 function formatCurrency(amount: number, currency: string = 'USD'): string {
@@ -40,7 +41,13 @@ export default function DashboardView() {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
       const data: PrimarySavingsResponse = await response.json()
-      setBalance(data.balance)
+      const rawBalance = data.currentBalance ?? data.balance
+      if (typeof rawBalance === 'number' && !Number.isNaN(rawBalance)) {
+        setBalance(rawBalance)
+      } else {
+        console.warn('Dashboard: received non-numeric or missing balance value', rawBalance)
+        setBalance(null)
+      }
       if (data.currency) {
         setCurrency(data.currency)
       }
@@ -94,10 +101,10 @@ export default function DashboardView() {
               {balance !== null ? formatCurrency(balance, currency) : '$---,--'}
             </div>
           )}
-          <div className="flex items-center text-xs text-emerald-600 font-medium">
-            <TrendingUp className="w-3.5 h-3.5 mr-1" />
+          {/* <div className="flex items-center text-xs text-emerald-600 font-medium">
+            <span className="w-3.5 h-3.5 mr-1" />
             +12.4% from last month
-          </div>
+          </div> */}
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-2">
