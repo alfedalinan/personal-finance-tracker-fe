@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { LayoutDashboard, TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownLeft, CreditCard, Plus } from 'lucide-react'
 import { apiFetch } from '../services/api'
+import { formatTransactionDate } from '../utils/dateUtils'
 
 interface Transaction {
   id: number | string
@@ -8,7 +9,7 @@ interface Transaction {
   category?: string
   categoryName?: string
   categoryType?: 'Income' | 'Expenses' | string
-  date: string
+  dateOfTransaction: string
   amount: number
 }
 
@@ -240,7 +241,7 @@ export default function DashboardView() {
                         <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
                           <th className="py-2.5 px-4">Description</th>
                           <th className="py-2.5 px-4">Category</th>
-                          <th className="py-2.5 px-4">Date</th>
+                          <th className="py-2.5 px-4 whitespace-nowrap">Date</th>
                           <th className="py-2.5 px-4 text-right">Amount</th>
                         </tr>
                       </thead>
@@ -257,7 +258,7 @@ export default function DashboardView() {
                                 <span className="text-slate-400">-</span>
                               )}
                             </td>
-                            <td className="py-3 px-4 text-slate-500">{tx.date}</td>
+                            <td className="py-3 px-4 text-slate-500">{formatTransactionDate(tx.dateOfTransaction)}</td>
                             {(() => {
                               const { formatted, className } = formatTransactionAmount(tx.amount, tx.categoryType)
                               return (
