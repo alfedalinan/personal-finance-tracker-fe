@@ -6,6 +6,8 @@ interface Transaction {
   id: number | string
   description: string
   category?: string
+  categoryName?: string
+  categoryType?: 'Income' | 'Expenses' | string
   date: string
   amount: number
 }
@@ -32,6 +34,34 @@ function formatCurrency(amount: number, currency: string = 'USD'): string {
     return `-${formatted}`
   }
   return formatted
+}
+
+function formatTransactionAmount(amount: number, categoryType?: string, currency: string = 'USD'): { formatted: string; className: string } {
+  const absVal = Math.abs(amount)
+  const formattedNum = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency || 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(absVal)
+
+  if (categoryType === 'Expense' || categoryType === 'Expenses') {
+    return {
+      formatted: `-${formattedNum}`,
+      className: 'text-red-600 dark:text-red-400 font-semibold'
+    }
+  } else if (categoryType === 'Income') {
+    return {
+      formatted: `+${formattedNum}`,
+      className: 'text-emerald-700 dark:text-emerald-400 font-semibold'
+    }
+  } else {
+    const sign = amount < 0 ? '-' : (amount > 0 ? '+' : '')
+    return {
+      formatted: `${sign}${formattedNum}`,
+      className: 'text-slate-900 dark:text-slate-100 font-semibold'
+    }
+  }
 }
 
 export default function DashboardView() {
@@ -219,18 +249,23 @@ export default function DashboardView() {
                           <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
                             <td className="py-3 px-4 font-medium text-slate-900">{tx.description}</td>
                             <td className="py-3 px-4">
-                              {tx.category ? (
+                              {(tx.categoryName ?? tx.category) ? (
                                 <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-                                  {tx.category}
+                                  {tx.categoryName ?? tx.category}
                                 </span>
                               ) : (
                                 <span className="text-slate-400">-</span>
                               )}
                             </td>
                             <td className="py-3 px-4 text-slate-500">{tx.date}</td>
-                            <td className={`py-3 px-4 text-right font-semibold ${tx.amount < 0 ? 'text-slate-900' : 'text-emerald-600'}`}>
-                              {formatCurrency(tx.amount)}
-                            </td>
+                            {(() => {
+                              const { formatted, className } = formatTransactionAmount(tx.amount, tx.categoryType)
+                              return (
+                                <td className={`py-3 px-4 text-right font-semibold ${className}`}>
+                                  {formatted}
+                                </td>
+                              )
+                            })()}
                           </tr>
                         ))}
                       </tbody>
