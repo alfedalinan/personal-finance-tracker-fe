@@ -25,18 +25,6 @@ export default function TransactionsView() {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await apiFetch('/api/transactions')
-      if (response.ok) {
-        const data = await response.json()
-        const list = Array.isArray(data) ? data : (data.transactions || data.data || data.items || [])
-        setTransactions(list)
-        return
-      }
-    } catch {
-      // fallback to accounts summary transactions
-    }
-
-    try {
       const response = await apiFetch('/api/accounts/summary')
       if (response.ok) {
         const data = await response.json()
@@ -49,6 +37,8 @@ export default function TransactionsView() {
         })
         setTransactions(allTx)
         return
+      } else {
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load transactions')
