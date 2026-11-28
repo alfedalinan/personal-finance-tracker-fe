@@ -12,6 +12,7 @@ interface TransactionItem {
   categoryType?: string
   dateOfTransaction: string
   amount: number
+  accountName?: string
 }
 
 export default function TransactionsView() {
@@ -30,9 +31,13 @@ export default function TransactionsView() {
         const data = await response.json()
         const accs = Array.isArray(data) ? data : (data.accounts || data.data || data.items || [])
         const allTx: TransactionItem[] = []
-        accs.forEach((acc: { transactions?: TransactionItem[] }) => {
+        accs.forEach((acc: { name?: string; transactions?: TransactionItem[] }) => {
           if (Array.isArray(acc.transactions)) {
-            allTx.push(...acc.transactions)
+            const enriched = acc.transactions.map(tx => ({
+              ...tx,
+              accountName: acc.name || 'Unknown Account'
+            }))
+            allTx.push(...enriched)
           }
         })
         setTransactions(allTx)
@@ -134,6 +139,7 @@ export default function TransactionsView() {
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
                 <th className="py-3 px-6">Description</th>
+                <th className="py-3 px-6">Account</th>
                 <th className="py-3 px-6">Category</th>
                 <th className="py-3 px-6">Date</th>
                 <th className="py-3 px-6 text-right">Amount</th>
@@ -142,7 +148,7 @@ export default function TransactionsView() {
             <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
               {transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-slate-400 italic">
+                  <td colSpan={5} className="py-8 text-center text-slate-400 italic">
                     {isLoading ? 'Loading transactions...' : 'No transactions recorded yet.'}
                   </td>
                 </tr>
@@ -152,6 +158,7 @@ export default function TransactionsView() {
                   return (
                     <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
                       <td className="py-4 px-6 font-medium text-slate-900">{tx.description}</td>
+                      <td className="py-4 px-6 text-slate-600 font-medium">{tx.accountName || '-'}</td>
                       <td className="py-4 px-6">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${isIncome ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-750'}`}>
                           {tx.categoryName ?? tx.category ?? 'General'}
