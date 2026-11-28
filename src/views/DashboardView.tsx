@@ -103,6 +103,29 @@ export default function DashboardView() {
 
   const totalBalance = accounts.reduce((acc, account) => acc + (account.currentBalance ?? 0), 0)
 
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth()
+
+  const allTransactions = accounts.flatMap((account) => account.transactions || [])
+  const monthlyIncome = allTransactions
+    .filter((tx) => {
+      if (tx.categoryType !== 'Income') return false
+      if (!tx.dateOfTransaction) return false
+      const txDate = new Date(tx.dateOfTransaction)
+      return !isNaN(txDate.getTime()) && txDate.getFullYear() === currentYear && txDate.getMonth() === currentMonth
+    })
+    .reduce((sum, tx) => sum + Math.abs(tx.amount || 0), 0)
+
+  const monthlyExpenses = allTransactions
+    .filter((tx) => {
+      if (tx.categoryType !== 'Expense' && tx.categoryType !== 'Expenses') return false
+      if (!tx.dateOfTransaction) return false
+      const txDate = new Date(tx.dateOfTransaction)
+      return !isNaN(txDate.getTime()) && txDate.getFullYear() === currentYear && txDate.getMonth() === currentMonth
+    })
+    .reduce((sum, tx) => sum + Math.abs(tx.amount || 0), 0)
+
   return (
     <div className="space-y-6">
       {/* Toast Notification */}
@@ -168,10 +191,26 @@ export default function DashboardView() {
             <span className="text-sm font-medium">Monthly Income</span>
             <ArrowDownLeft className="w-5 h-5 text-emerald-600" />
           </div>
-          <div className="text-3xl font-bold text-slate-900">$4,850.00</div>
+          {isLoading ? (
+            <div className="text-3xl font-bold text-slate-300 animate-pulse">$---,--</div>
+          ) : error ? (
+            <div className="space-y-2 py-1">
+              <div className="text-xs text-rose-600 font-medium">Failed to load income</div>
+              <button
+                onClick={fetchAccountsSummary}
+                className="inline-flex items-center px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+            <div className="text-3xl font-bold text-slate-900">
+              {formatCurrency(monthlyIncome)}
+            </div>
+          )}
           <div className="flex items-center text-xs text-emerald-600 font-medium">
             <TrendingUp className="w-3.5 h-3.5 mr-1" />
-            +4.1% vs average
+            Current calendar month
           </div>
         </div>
 
@@ -180,10 +219,26 @@ export default function DashboardView() {
             <span className="text-sm font-medium">Monthly Expenses</span>
             <ArrowUpRight className="w-5 h-5 text-rose-600" />
           </div>
-          <div className="text-3xl font-bold text-slate-900">$1,920.40</div>
+          {isLoading ? (
+            <div className="text-3xl font-bold text-slate-300 animate-pulse">$---,--</div>
+          ) : error ? (
+            <div className="space-y-2 py-1">
+              <div className="text-xs text-rose-600 font-medium">Failed to load expenses</div>
+              <button
+                onClick={fetchAccountsSummary}
+                className="inline-flex items-center px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+            <div className="text-3xl font-bold text-slate-900">
+              {formatCurrency(monthlyExpenses)}
+            </div>
+          )}
           <div className="flex items-center text-xs text-rose-600 font-medium">
             <TrendingDown className="w-3.5 h-3.5 mr-1" />
-            -2.3% vs average
+            Current calendar month
           </div>
         </div>
       </div>
