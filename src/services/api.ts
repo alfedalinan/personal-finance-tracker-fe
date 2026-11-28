@@ -17,10 +17,20 @@ export async function apiFetch(endpoint: string, options?: RequestInit): Promise
   if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`)
   }
-  return fetch(url, {
+  const response = await fetch(url, {
     ...options,
     headers,
   })
+
+  if (response.status === 401) {
+    sessionStorage.removeItem('auth_token')
+    sessionStorage.removeItem('user')
+    if (!window.location.pathname.includes('/login')) {
+      window.location.href = '/login'
+    }
+  }
+
+  return response
 }
 
 export interface AccountOption {
