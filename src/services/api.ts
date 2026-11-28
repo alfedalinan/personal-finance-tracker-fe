@@ -2,7 +2,7 @@
  * Centralized API configuration and helper utilities.
  */
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5088'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5012'
 
 export function getApiUrl(endpoint: string): string {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
@@ -12,7 +12,15 @@ export function getApiUrl(endpoint: string): string {
 
 export async function apiFetch(endpoint: string, options?: RequestInit): Promise<Response> {
   const url = getApiUrl(endpoint)
-  return fetch(url, options)
+  const token = sessionStorage.getItem('auth_token')
+  const headers = new Headers(options?.headers || {})
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+  return fetch(url, {
+    ...options,
+    headers,
+  })
 }
 
 export interface AccountOption {

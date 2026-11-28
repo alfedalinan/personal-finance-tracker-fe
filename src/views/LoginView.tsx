@@ -1,19 +1,24 @@
 import { useState, FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Wallet, LogIn, AlertCircle, CheckCircle2, UserPlus } from 'lucide-react'
+import { useNavigate, Navigate } from 'react-router-dom'
+import { Wallet, LogIn, AlertCircle, CheckCircle2, UserPlus, Loader2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import RegisterModal from '../components/RegisterModal'
 
 export default function LoginView() {
-  const { login, successMessage, clearSuccessMessage } = useAuth()
+  const { isAuthenticated, login, successMessage, clearSuccessMessage } = useAuth()
   const navigate = useNavigate()
 
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const [isRegisterOpen, setIsRegisterOpen] = useState(false)
 
-  const handleSubmit = (e: FormEvent) => {
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
     clearSuccessMessage()
@@ -23,11 +28,18 @@ export default function LoginView() {
       return
     }
 
-    const success = login(username.trim(), password)
-    if (success) {
-      navigate('/dashboard', { replace: true })
-    } else {
-      setError('Invalid username or password. (Hint: try demo / demo123 or admin / password123)')
+    setIsLoading(true)
+    try {
+      const success = await login(username.trim(), password)
+      if (success) {
+        navigate('/dashboard', { replace: true })
+      } else {
+        setError('Invalid username or password.')
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Invalid username or password.')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -79,7 +91,8 @@ export default function LoginView() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter username"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+                disabled={isLoading}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all disabled:opacity-60"
               />
             </div>
 
@@ -92,16 +105,24 @@ export default function LoginView() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+                disabled={isLoading}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all disabled:opacity-60"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2 transition-all transform active:scale-[0.99]"
+              disabled={isLoading}
+              className="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2 transition-all transform active:scale-[0.99] disabled:opacity-70"
             >
-              <LogIn className="w-5 h-5" />
-              <span>Log In</span>
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <LogIn className="w-5 h-5" />
+                  <span>Log In</span>
+                </>
+              )}
             </button>
           </form>
 
