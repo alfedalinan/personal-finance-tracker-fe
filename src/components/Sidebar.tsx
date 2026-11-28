@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Receipt, Wallet, X } from 'lucide-react'
+import { LayoutDashboard, Receipt, Wallet, X, LogOut, User } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 interface SidebarProps {
   mobileOpen?: boolean
@@ -7,6 +8,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarProps) {
+  const { user, logout } = useAuth()
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Transactions', path: '/transactions', icon: Receipt },
@@ -72,12 +74,26 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
         })}
       </nav>
 
-      {/* Footer info in sidebar */}
-      <div className="p-4 border-t border-slate-200">
-        <div className="bg-indigo-50/60 rounded-xl p-3.5 border border-indigo-100 text-left">
-          <p className="text-xs font-semibold text-indigo-900">STORY-001 Active</p>
-          <p className="text-xs text-indigo-700 mt-0.5">Persistent Side Navigation & Routing enabled.</p>
-        </div>
+      {/* User Session & Logout Footer */}
+      <div className="p-4 border-t border-slate-200 space-y-3">
+        {user && (
+          <div className="flex items-center space-x-3 px-3 py-2 bg-slate-50 rounded-xl border border-slate-200">
+            <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm">
+              <User className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-slate-900 truncate">{user.username}</p>
+              <p className="text-[10px] text-emerald-600 font-medium">Active Session</p>
+            </div>
+          </div>
+        )}
+        <button
+          onClick={logout}
+          className="w-full flex items-center justify-center px-4 py-2.5 rounded-xl border border-rose-200 bg-rose-50/50 text-rose-700 hover:bg-rose-100 hover:border-rose-300 text-sm font-semibold transition-all shadow-sm"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          <span>Log Out</span>
+        </button>
       </div>
     </div>
   )
